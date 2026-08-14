@@ -9,6 +9,7 @@ psycopg2-binary>=2.9.0,<3.0.0
 
 # ─── LangChain + Integrations ───
 langchain-core>=0.3.0,<1.0.0
+langchain-community>=0.3.0,<1.0.0
 langchain-groq>=0.3.0,<1.0.0
 langchain-huggingface>=0.1.0,<1.0.0
 langchain-qdrant>=0.2.0,<1.0.0
@@ -19,6 +20,9 @@ qdrant-client>=1.12.0,<2.0.0
 
 # ─── Embeddings (HuggingFace Inference API — no local model needed) ───
 # langchain-huggingface provides HuggingFaceEndpointEmbeddings
+
+# ─── Re-ranking ───
+flashrank>=0.2.0,<1.0.0
 
 # ─── PDF Parsing ───
 PyMuPDF>=1.25.0,<2.0.0
