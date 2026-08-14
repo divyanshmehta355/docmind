@@ -51,11 +51,34 @@ export const documentsAPI = {
   },
   list: () => client.get("/documents/"),
   delete: (documentId) => client.delete(`/documents/${documentId}`),
+  getPdfBlob: (documentId) => client.get(`/documents/${documentId}/pdf`, { responseType: 'blob' }),
 };
 
 export const chatAPI = {
   query: (documentId, question) =>
     client.post("/chat/query", { document_id: documentId, question }),
+  queryStream: async (documentId, question) => {
+    const token = localStorage.getItem("docmind_token");
+    const response = await fetch(`${API_URL}/chat/query`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ document_id: documentId, question }),
+    });
+
+    if (!response.ok) {
+      let errorMsg = "Query failed";
+      try {
+        const error = await response.json();
+        errorMsg = error.detail || errorMsg;
+      } catch (e) {}
+      throw new Error(errorMsg);
+    }
+
+    return response.body.getReader();
+  },
   history: (documentId) => client.get(`/chat/history/${documentId}`),
 };
 

@@ -8,9 +8,11 @@ import {
   Loader,
   Brain,
   Sparkles,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
-export default function ChatWindow({ selectedDocId, documents }) {
+export default function ChatWindow({ selectedDocId, documents, onSourceClick, showPdf, setShowPdf }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -69,22 +71,63 @@ export default function ChatWindow({ selectedDocId, documents }) {
       setIsLoading(true);
 
       try {
-        const res = await chatAPI.query(selectedDocId, question);
-        const assistantMessage = {
+        const reader = await chatAPI.queryStream(selectedDocId, question);
+        const decoder = new TextDecoder("utf-8");
+
+        let assistantMessage = {
           id: `resp-${Date.now()}`,
           role: "assistant",
-          content: res.data.answer,
-          sources: res.data.sources,
-          confidence: res.data.confidence,
+          content: "",
+          sources: null,
+          confidence: null,
           created_at: new Date().toISOString(),
         };
+
+        // Add the empty message to the UI
         setMessages((prev) => [...prev, assistantMessage]);
+        
+        // Hide the generic typing indicator since the stream is starting
+        setIsLoading(false);
+
+        let done = false;
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split("\n\n");
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const data = JSON.parse(line.substring(6));
+                  if (data.sources !== undefined) {
+                    assistantMessage.sources = data.sources;
+                    assistantMessage.confidence = data.confidence;
+                  }
+                  if (data.token) {
+                    assistantMessage.content += data.token;
+                  }
+                } catch (e) {
+                  console.error("Error parsing SSE data:", e, line);
+                }
+              }
+            }
+
+            // Update the UI with the latest accumulated message
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessage.id ? { ...assistantMessage } : msg
+              )
+            );
+          }
+        }
       } catch (err) {
         const errorMessage = {
           id: `err-${Date.now()}`,
           role: "assistant",
           content:
-            err.response?.data?.detail ||
+            err.message ||
             "Something went wrong. Please try again.",
           created_at: new Date().toISOString(),
         };
@@ -142,6 +185,18 @@ export default function ChatWindow({ selectedDocId, documents }) {
             </span>
           </div>
         </div>
+        <button 
+          type="button"
+          className="chat-header-btn"
+          onClick={() => setShowPdf(!showPdf)}
+          title={showPdf ? "Hide PDF Viewer" : "Show PDF Viewer"}
+        >
+          {showPdf ? (
+            <><EyeOff size={16} /> Hide PDF</>
+          ) : (
+            <><Eye size={16} /> Show PDF</>
+          )}
+        </button>
       </div>
 
       {}
@@ -162,7 +217,7 @@ export default function ChatWindow({ selectedDocId, documents }) {
           </div>
         ) : (
           messages.map((msg, i) => (
-            <MessageBubble key={msg.id} message={msg} index={i} />
+            <MessageBubble key={msg.id} message={msg} index={i} onSourceClick={onSourceClick} />
           ))
         )}
 
@@ -247,6 +302,26 @@ const chatStyles = `
   .chat-header-meta {
     font-size: 0.75rem;
     color: var(--text-muted);
+  }
+
+  .chat-header-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .chat-header-btn:hover {
+    background: var(--glass-bg);
+    color: var(--text-primary);
   }
 
   .chat-messages {

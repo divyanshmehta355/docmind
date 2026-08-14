@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-export default function MessageBubble({ message, index }) {
+export default function MessageBubble({ message, index, onSourceClick }) {
   const isUser = message.role === "user";
 
   return (
@@ -59,7 +59,7 @@ export default function MessageBubble({ message, index }) {
         {!isUser && message.sources && message.sources.length > 0 && (
           <div className="message-sources">
             {message.sources.map((source, i) => (
-              <SourceCard key={i} source={source} index={i} />
+              <SourceCard key={i} source={source} index={i} onSourceClick={onSourceClick} />
             ))}
           </div>
         )}

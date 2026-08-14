@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FileText, ChevronDown, ChevronUp } from "lucide-react";
 
-export default function SourceCard({ source, index }) {
+export default function SourceCard({ source, index, onSourceClick }) {
   const [expanded, setExpanded] = useState(false);
 
   const scorePercent = Math.round(source.score * 100);
@@ -26,6 +26,17 @@ export default function SourceCard({ source, index }) {
           <FileText size={14} />
           <span className="source-label">Source {index + 1}</span>
           <span className="source-page">Page {source.page_number}</span>
+          <button 
+            type="button" 
+            className="source-jump-btn" 
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              if (onSourceClick) onSourceClick(source.page_number); 
+            }}
+            title="View in PDF"
+          >
+            View
+          </button>
           <span className={`source-score ${scoreClass}`}>{scorePercent}%</span>
         </div>
         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -89,6 +100,23 @@ export default function SourceCard({ source, index }) {
         .source-score {
           font-weight: 700;
           font-size: 0.7rem;
+        }
+
+        .source-jump-btn {
+          background: rgba(59, 130, 246, 0.15);
+          color: var(--accent-blue);
+          border: 1px solid rgba(59, 130, 246, 0.3);
+          border-radius: 4px;
+          padding: 2px 8px;
+          font-size: 0.65rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .source-jump-btn:hover {
+          background: rgba(59, 130, 246, 0.25);
+          border-color: rgba(59, 130, 246, 0.5);
         }
 
         .source-content {
