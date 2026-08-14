@@ -1,0 +1,33 @@
+# ─── Core Framework ───
+fastapi>=0.115.0,<1.0.0
+uvicorn[standard]>=0.32.0,<1.0.0
+python-multipart>=0.0.9
+
+# ─── Database (PostgreSQL) ───
+sqlalchemy>=2.0.0,<3.0.0
+psycopg2-binary>=2.9.0,<3.0.0
+
+# ─── LangChain + Integrations ───
+langchain-core>=0.3.0,<1.0.0
+langchain-groq>=0.3.0,<1.0.0
+langchain-huggingface>=0.1.0,<1.0.0
+langchain-qdrant>=0.2.0,<1.0.0
+langchain-text-splitters>=0.3.0,<1.0.0
+
+# ─── Vector DB ───
+qdrant-client>=1.12.0,<2.0.0
+
+# ─── Embeddings (HuggingFace Inference API — no local model needed) ───
+# langchain-huggingface provides HuggingFaceEndpointEmbeddings
+
+# ─── PDF Parsing ───
+PyMuPDF>=1.25.0,<2.0.0
+
+# ─── Auth ───
+python-jose[cryptography]>=3.3.0,<4.0.0
+passlib[bcrypt]>=1.7.0,<2.0.0
+bcrypt==3.2.2
+
+# ─── Config ───
+pydantic-settings>=2.0.0,<3.0.0
+pydantic[email]>=2.0.0,<3.0.0
