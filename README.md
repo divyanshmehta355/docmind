@@ -31,7 +31,7 @@ DocMind is a full-stack Retrieval-Augmented Generation (RAG) application that al
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/docmind.git
+git clone https://github.com/divyanshmehta355/docmind.git
 cd docmind
 ```
 
@@ -82,4 +82,4 @@ npm run dev
 - Vector searches are strictly filtered at the Qdrant database level using the authenticated user's ID.
 
 ---
-*Built with ❤️ by an AI engineer.*
+*Built with ❤️ by Divyansh.*
