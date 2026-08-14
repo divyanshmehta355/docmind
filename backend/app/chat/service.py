@@ -57,7 +57,8 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
     final_chunks = []
     for d in reranked_docs:
         chunk = d.metadata
-        chunk["score"] = d.metadata.get("relevance_score", chunk["score"])
+        # Cast to float to avoid JSON serialization errors with numpy float32
+        chunk["score"] = float(d.metadata.get("relevance_score", chunk["score"]))
         final_chunks.append(chunk)
         
     if not final_chunks or final_chunks[0]["score"] < settings.CONFIDENCE_THRESHOLD:
