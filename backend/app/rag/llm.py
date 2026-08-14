@@ -1,5 +1,5 @@
 from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from app.config import get_settings
 
 settings = get_settings()
@@ -30,5 +30,6 @@ Rules:
 def get_rag_prompt() -> ChatPromptTemplate:
     return ChatPromptTemplate.from_messages([
         ("system", RAG_SYSTEM_PROMPT),
+        MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{question}"),
     ])

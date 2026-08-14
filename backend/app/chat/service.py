@@ -1,5 +1,9 @@
 import json
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
+from langchain_community.document_compressors.flashrank_rerank import FlashrankRerank
+from langchain_core.documents import Document as LangchainDocument
+from langchain_core.messages import HumanMessage, AIMessage
 from app.models import Document, ChatMessage
 from app.rag.embeddings import get_embeddings_model
 from app.rag.vectorstore import search_chunks
@@ -23,9 +27,40 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
         user_id=user_id,
         document_id=document.id,
         query_embedding=query_embedding,
+        top_k=15
     )
     
-    if not chunks or chunks[0]["score"] < settings.CONFIDENCE_THRESHOLD:
+    if not chunks:
+        answer = "I don't know the answer based on the provided document. The question doesn't seem to match any content in the PDF."
+        
+        yield f"data: {json.dumps({'sources': [], 'confidence': 'none'})}\n\n"
+        yield f"data: {json.dumps({'token': answer})}\n\n"
+        
+        user_msg = ChatMessage(user_id=user_id, document_id=document.id, role="user", content=question)
+        assistant_msg = ChatMessage(
+            user_id=user_id,
+            document_id=document.id,
+            role="assistant",
+            content=answer,
+            sources=[]
+        )
+        db.add(user_msg)
+        db.add(assistant_msg)
+        db.commit()
+        return
+
+    # Cross-encoder Reranking
+    lc_docs = [LangchainDocument(page_content=c["text"], metadata=c) for c in chunks]
+    compressor = FlashrankRerank(top_n=4)
+    reranked_docs = compressor.compress_documents(lc_docs, question)
+    
+    final_chunks = []
+    for d in reranked_docs:
+        chunk = d.metadata
+        chunk["score"] = d.metadata.get("relevance_score", chunk["score"])
+        final_chunks.append(chunk)
+        
+    if not final_chunks or final_chunks[0]["score"] < settings.CONFIDENCE_THRESHOLD:
         answer = "I don't know the answer based on the provided document. The question doesn't seem to match any content in the PDF."
         
         yield f"data: {json.dumps({'sources': [], 'confidence': 'none'})}\n\n"
@@ -47,7 +82,7 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
     context_parts = []
     sources = []
     
-    for i, chunk in enumerate(chunks):
+    for i, chunk in enumerate(final_chunks):
         source_index = i + 1
         context_parts.append(f"[{source_index}] (Page {chunk['page_number']}):\n{chunk['text']}")
         sources.append({
@@ -58,17 +93,33 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
         })
         
     context = "\n\n".join(context_parts)
+    
+    recent_messages = db.query(ChatMessage).filter(
+        ChatMessage.document_id == document.id
+    ).order_by(desc(ChatMessage.created_at)).limit(6).all()
+    
+    chat_history = []
+    for msg in reversed(recent_messages):
+        if msg.role == "user":
+            chat_history.append(HumanMessage(content=msg.content))
+        else:
+            chat_history.append(AIMessage(content=msg.content))
+            
     prompt = get_rag_prompt()
     llm = get_llm()
     chain = prompt | llm
     
-    confidence = get_confidence_level(chunks[0]["score"])
+    confidence = get_confidence_level(final_chunks[0]["score"])
     
     yield f"data: {json.dumps({'sources': sources, 'confidence': confidence})}\n\n"
     
     full_answer = ""
     try:
-        for chunk in chain.stream({"context": context, "question": question}):
+        for chunk in chain.stream({
+            "context": context, 
+            "chat_history": chat_history,
+            "question": question
+        }):
             token = chunk.content
             if token:
                 full_answer += token
