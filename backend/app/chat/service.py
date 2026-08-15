@@ -15,12 +15,44 @@ def get_confidence_level(score: float) -> str:
     if score >= 0.7:
         return "high"
     if score >= settings.CONFIDENCE_THRESHOLD:
-        return "medium"
     return "low"
 
 def query_document_stream(db: Session, user_id: str, document: Document, question: str):
+
+    recent_messages = db.query(ChatMessage).filter(
+        ChatMessage.document_id == document.id
+    ).order_by(desc(ChatMessage.created_at)).limit(6).all()
+    
+    chat_history = []
+    for msg in reversed(recent_messages):
+        if msg.role == "user":
+            chat_history.append(HumanMessage(content=msg.content))
+        else:
+            chat_history.append(AIMessage(content=msg.content))
+
+    search_query = question
+    
+    if chat_history:
+        # Use a blazing fast LLM call to rewrite the query with context
+        llm = get_llm()
+        history_text = "\n".join([f"{'User' if isinstance(m, HumanMessage) else 'Assistant'}: {m.content}" for m in chat_history[-4:]])
+        prompt = f"""Given the following chat history and a follow up question, rephrase the follow up question to be a standalone question. 
+        If the question doesn't need context, return it exactly as is.
+        Do not answer the question, just return the standalone question text.
+        
+        Chat History:
+        {history_text}
+        
+        Follow Up Question: {question}
+        
+        Standalone question:"""
+        
+        response = llm.invoke(prompt)
+        search_query = response.content.strip()
+        print(f"Rephrased query: {search_query}")
+
     embeddings_model = get_embeddings_model()
-    query_embedding = embeddings_model.embed_query(question)
+    query_embedding = embeddings_model.embed_query(search_query)
     
     chunks = search_chunks(
         user_id=user_id,
