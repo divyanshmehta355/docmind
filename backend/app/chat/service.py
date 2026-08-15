@@ -15,6 +15,7 @@ def get_confidence_level(score: float) -> str:
     if score >= 0.7:
         return "high"
     if score >= settings.CONFIDENCE_THRESHOLD:
+        return "medium"
     return "low"
 
 def query_document_stream(db: Session, user_id: str, document: Document, question: str):
