@@ -1,7 +1,6 @@
 import json
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
-from langchain_community.document_compressors.flashrank_rerank import FlashrankRerank
 from langchain_core.documents import Document as LangchainDocument
 from langchain_core.messages import HumanMessage, AIMessage
 from app.models import Document, ChatMessage
@@ -27,7 +26,7 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
         user_id=user_id,
         document_id=document.id,
         query_embedding=query_embedding,
-        top_k=8
+        top_k=4
     )
     
     if not chunks:
@@ -49,17 +48,7 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
         db.commit()
         return
 
-    # Cross-encoder Reranking
-    lc_docs = [LangchainDocument(page_content=c["text"], metadata=c) for c in chunks]
-    compressor = FlashrankRerank(top_n=4)
-    reranked_docs = compressor.compress_documents(lc_docs, question)
-    
-    final_chunks = []
-    for d in reranked_docs:
-        chunk = d.metadata
-        # Cast to float to avoid JSON serialization errors with numpy float32
-        chunk["score"] = float(d.metadata.get("relevance_score", chunk["score"]))
-        final_chunks.append(chunk)
+    final_chunks = chunks
         
     if not final_chunks or final_chunks[0]["score"] < settings.CONFIDENCE_THRESHOLD:
         answer = "I don't know the answer based on the provided document. The question doesn't seem to match any content in the PDF."
