@@ -56,6 +56,7 @@ async def upload_document(
             )
             
             document.pdf_url = upload.url
+            document.imagekit_file_id = upload.file_id
             db.commit()
             db.refresh(document)
         except Exception as e:

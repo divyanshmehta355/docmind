@@ -42,6 +42,7 @@ class Document(Base):
     status = Column(String, default="processing")
     error_message = Column(Text, nullable=True)
     pdf_url = Column(String, nullable=True)
+    imagekit_file_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=_utcnow)
 
     owner = relationship("User", back_populates="documents")

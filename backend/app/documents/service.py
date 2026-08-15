@@ -64,6 +64,27 @@ def get_document_by_id(db: Session, document_id: str, user_id: str) -> Document 
     return db.query(Document).filter(Document.id == document_id, Document.user_id == user_id).first()
 
 def remove_document(db: Session, document: Document, user_id: str):
+    from app.config import get_settings
+    from imagekitio import ImageKit
+    
+    settings = get_settings()
+    
+    # 1. Delete from Qdrant
     delete_document_chunks(user_id=user_id, document_id=document.id)
+    
+    # 2. Delete from ImageKit
+    if document.imagekit_file_id and settings.IMAGEKIT_PUBLIC_KEY and settings.IMAGEKIT_PRIVATE_KEY:
+        try:
+            imagekit = ImageKit(
+                public_key=settings.IMAGEKIT_PUBLIC_KEY,
+                private_key=settings.IMAGEKIT_PRIVATE_KEY,
+                url_endpoint=settings.IMAGEKIT_URL_ENDPOINT
+            )
+            imagekit.delete_file(file_id=document.imagekit_file_id)
+        except Exception as e:
+            logger.error(f"Failed to delete file from ImageKit: {e}")
+            pass
+            
+    # 3. Delete from DB (cascades delete Chat Messages)
     db.delete(document)
     db.commit()
