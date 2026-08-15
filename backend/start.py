@@ -10,9 +10,16 @@ def main():
     # Get the port from Render (defaults to 8000 locally)
     port = os.environ.get("PORT", "8000")
 
+    celery_cmd = [sys.executable, "-m", "celery", "-A", "app.celery_app.celery_app", "worker", "--loglevel=info"]
+    
+    # Windows compatibility fix: Celery's default prefork pool crashes on Windows.
+    # We automatically switch to the 'solo' pool for local Windows development.
+    if os.name == 'nt':
+        celery_cmd.append("--pool=solo")
+
     # Start Celery Worker
     celery_process = subprocess.Popen(
-        [sys.executable, "-m", "celery", "-A", "app.celery_app.celery_app", "worker", "--loglevel=info"],
+        celery_cmd,
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
