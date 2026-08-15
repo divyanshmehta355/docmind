@@ -35,7 +35,6 @@
 
 ```mermaid
 graph TD
-    %% Define styles
     classDef client fill:#3b82f6,stroke:#2563eb,stroke-width:2px,color:#fff
     classDef api fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
     classDef worker fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
@@ -54,25 +53,25 @@ graph TD
     Groq[Groq Llama 3.3]:::external
 
     %% Upload Flow
-    User -- "1. Uploads PDF" --> ReactUI
-    ReactUI -- "2. POST /upload" --> FastAPI
-    FastAPI -- "3. Streams File" --> ImageKit
-    FastAPI -- "4. Enqueues Task" --> Redis
-    Redis -- "5. Picks up Task" --> Celery
-    Celery -- "6. Chunks Text & Embeds" --> HuggingFace
-    HuggingFace -- "7. Returns Vectors" --> Celery
-    Celery -- "8. Upserts Vectors" --> Qdrant
+    User -->|1. Uploads PDF| ReactUI
+    ReactUI -->|2. POST upload| FastAPI
+    FastAPI -->|3. Streams File| ImageKit
+    FastAPI -->|4. Enqueues Task| Redis
+    Redis -->|5. Picks up Task| Celery
+    Celery -->|6. Chunks Text & Embeds| HuggingFace
+    HuggingFace -->|7. Returns Vectors| Celery
+    Celery -->|8. Upserts Vectors| Qdrant
 
     %% Chat Flow
-    User -- "9. Asks Question" --> ReactUI
-    ReactUI -- "10. GET /chat (SSE)" --> FastAPI
-    FastAPI -- "11. Checks Cache" --> Redis
-    FastAPI -- "12. Fetch History" --> Postgres
-    FastAPI -- "13. Rephrase Query" --> Groq
-    FastAPI -- "14. Semantic Search" --> Qdrant
-    FastAPI -- "15. Generate Answer" --> Groq
-    Groq -- "16. Streams Tokens" --> FastAPI
-    FastAPI -- "17. SSE Stream" --> ReactUI
+    User -->|9. Asks Question| ReactUI
+    ReactUI -->|10. GET chat SSE| FastAPI
+    FastAPI -->|11. Checks Cache| Redis
+    FastAPI -->|12. Fetch History| Postgres
+    FastAPI -->|13. Rephrase Query| Groq
+    FastAPI -->|14. Semantic Search| Qdrant
+    FastAPI -->|15. Generate Answer| Groq
+    Groq -->|16. Streams Tokens| FastAPI
+    FastAPI -->|17. SSE Stream| ReactUI
 ```
 
 ---
