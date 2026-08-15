@@ -25,18 +25,21 @@ async def lifespan(app: FastAPI):
     # Safe fallback to add new columns to existing deployments without wiping data
     from app.database import engine
     from sqlalchemy import text
+    
     with engine.begin() as conn:
         try:
             conn.execute(text("ALTER TABLE documents ADD COLUMN pdf_url VARCHAR"))
             logger.info("Added pdf_url column to documents table")
         except Exception:
             pass # Column already exists
+            
+    with engine.begin() as conn:
         try:
             conn.execute(text("ALTER TABLE documents ADD COLUMN imagekit_file_id VARCHAR"))
             logger.info("Added imagekit_file_id column to documents table")
         except Exception:
             pass # Column already exists
-    
+            
     model = get_embeddings_model()
     logger.info(f"Embedding client ready: {model.model}")
     
