@@ -27,7 +27,7 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
         user_id=user_id,
         document_id=document.id,
         query_embedding=query_embedding,
-        top_k=15
+        top_k=8
     )
     
     if not chunks:
