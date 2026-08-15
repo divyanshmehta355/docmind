@@ -1,4 +1,6 @@
 import json
+import hashlib
+import redis
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 from langchain_core.documents import Document as LangchainDocument
@@ -19,6 +21,33 @@ def get_confidence_level(score: float) -> str:
     return "low"
 
 def query_document_stream(db: Session, user_id: str, document: Document, question: str):
+    # Setup Redis Cache Key
+    redis_client = redis.from_url(settings.REDIS_URL)
+    question_hash = hashlib.sha256(question.strip().lower().encode('utf-8')).hexdigest()
+    cache_key = f"docmind:chat:{user_id}:{document.id}:{question_hash}"
+    
+    try:
+        cached_response = redis_client.get(cache_key)
+        if cached_response:
+            cached_data = json.loads(cached_response)
+            yield f"data: {json.dumps({'sources': cached_data['sources'], 'confidence': cached_data['confidence']})}\n\n"
+            yield f"data: {json.dumps({'token': cached_data['answer']})}\n\n"
+            
+            user_msg = ChatMessage(user_id=user_id, document_id=document.id, role="user", content=question)
+            assistant_msg = ChatMessage(
+                user_id=user_id,
+                document_id=document.id,
+                role="assistant",
+                content=cached_data['answer'],
+                sources=cached_data['sources']
+            )
+            db.add(user_msg)
+            db.add(assistant_msg)
+            db.commit()
+            print("Cache hit! Bypassing LLM.")
+            return
+    except Exception as e:
+        print(f"Redis cache error: {e}")
 
     recent_messages = db.query(ChatMessage).filter(
         ChatMessage.document_id == document.id
@@ -159,3 +188,14 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
         db.add(user_msg)
         db.add(assistant_msg)
         db.commit()
+        
+        # Save to Redis Cache (24 hours TTL)
+        try:
+            cache_data = {
+                "answer": full_answer,
+                "sources": assistant_msg.sources,
+                "confidence": confidence
+            }
+            redis_client.setex(cache_key, 86400, json.dumps(cache_data))
+        except Exception as e:
+            print(f"Redis cache save error: {e}")

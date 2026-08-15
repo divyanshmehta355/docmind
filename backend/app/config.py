@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     IMAGEKIT_URL_ENDPOINT: str = ""
 
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/docmind"
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     RETRIEVAL_TOP_K: int = 5
     CONFIDENCE_THRESHOLD: float = 0.35

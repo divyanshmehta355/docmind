@@ -64,13 +64,9 @@ async def upload_document(
             print(f"ImageKit upload failed: {e}")
             pass
     
-    background_tasks.add_task(
-        process_document,
-        db=db,
-        user_id=current_user.id,
-        document=document,
-        pdf_bytes=content
-    )
+    # Send task to Celery Queue instead of blocking web server resources
+    from app.celery_app import process_document_task
+    process_document_task.delay(document_id=document.id, user_id=current_user.id)
     
     return document
 
