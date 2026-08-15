@@ -9,7 +9,10 @@ export default function PdfViewer({ document, currentPage }) {
     return (
       <div className="pdf-viewer-state error-state">
         <AlertCircle size={24} />
-        <p>This document does not have a valid Cloud PDF URL. Please re-upload it.</p>
+        <p>
+          This document does not have a valid Cloud PDF URL. Please re-upload
+          it.
+        </p>
       </div>
     );
   }

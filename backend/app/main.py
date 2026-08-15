@@ -16,42 +16,46 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting DocMind backend...")
     init_db()
     logger.info("Database tables initialized")
-    
+
     # Safe fallback to add new columns to existing deployments without wiping data
     from app.database import engine
     from sqlalchemy import text
-    
+
     with engine.begin() as conn:
         try:
             conn.execute(text("ALTER TABLE documents ADD COLUMN pdf_url VARCHAR"))
             logger.info("Added pdf_url column to documents table")
         except Exception:
-            pass # Column already exists
-            
+            pass  # Column already exists
+
     with engine.begin() as conn:
         try:
-            conn.execute(text("ALTER TABLE documents ADD COLUMN imagekit_file_id VARCHAR"))
+            conn.execute(
+                text("ALTER TABLE documents ADD COLUMN imagekit_file_id VARCHAR")
+            )
             logger.info("Added imagekit_file_id column to documents table")
         except Exception:
-            pass # Column already exists
-            
+            pass  # Column already exists
+
     model = get_embeddings_model()
     logger.info(f"Embedding client ready: {model.model}")
-    
+
     init_collection()
     logger.info("Qdrant collection ready")
-    
+
     llm = get_llm()
     logger.info(f"LLM client ready: {llm.model_name}")
-    
+
     logger.info("DocMind backend is ready!")
     yield
     logger.info("Shutting down DocMind backend...")
+
 
 app = FastAPI(
     title="DocMind API",
@@ -71,6 +75,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(documents_router)
 app.include_router(chat_router)
+
 
 @app.get("/health")
 def health_check():

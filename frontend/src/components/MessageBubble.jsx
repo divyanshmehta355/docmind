@@ -59,7 +59,12 @@ export default function MessageBubble({ message, index, onSourceClick }) {
         {!isUser && message.sources && message.sources.length > 0 && (
           <div className="message-sources">
             {message.sources.map((source, i) => (
-              <SourceCard key={i} source={source} index={i} onSourceClick={onSourceClick} />
+              <SourceCard
+                key={i}
+                source={source}
+                index={i}
+                onSourceClick={onSourceClick}
+              />
             ))}
           </div>
         )}

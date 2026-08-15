@@ -12,7 +12,13 @@ import {
   EyeOff,
 } from "lucide-react";
 
-export default function ChatWindow({ selectedDocId, documents, onSourceClick, showPdf, setShowPdf }) {
+export default function ChatWindow({
+  selectedDocId,
+  documents,
+  onSourceClick,
+  showPdf,
+  setShowPdf,
+}) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -85,7 +91,7 @@ export default function ChatWindow({ selectedDocId, documents, onSourceClick, sh
 
         // Add the empty message to the UI
         setMessages((prev) => [...prev, assistantMessage]);
-        
+
         // Hide the generic typing indicator since the stream is starting
         setIsLoading(false);
 
@@ -117,8 +123,8 @@ export default function ChatWindow({ selectedDocId, documents, onSourceClick, sh
             // Update the UI with the latest accumulated message
             setMessages((prev) =>
               prev.map((msg) =>
-                msg.id === assistantMessage.id ? { ...assistantMessage } : msg
-              )
+                msg.id === assistantMessage.id ? { ...assistantMessage } : msg,
+              ),
             );
           }
         }
@@ -126,9 +132,7 @@ export default function ChatWindow({ selectedDocId, documents, onSourceClick, sh
         const errorMessage = {
           id: `err-${Date.now()}`,
           role: "assistant",
-          content:
-            err.message ||
-            "Something went wrong. Please try again.",
+          content: err.message || "Something went wrong. Please try again.",
           created_at: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, errorMessage]);
@@ -185,16 +189,20 @@ export default function ChatWindow({ selectedDocId, documents, onSourceClick, sh
             </span>
           </div>
         </div>
-        <button 
+        <button
           type="button"
           className="chat-header-btn"
           onClick={() => setShowPdf(!showPdf)}
           title={showPdf ? "Hide PDF Viewer" : "Show PDF Viewer"}
         >
           {showPdf ? (
-            <><EyeOff size={16} /> Hide PDF</>
+            <>
+              <EyeOff size={16} /> Hide PDF
+            </>
           ) : (
-            <><Eye size={16} /> Show PDF</>
+            <>
+              <Eye size={16} /> Show PDF
+            </>
           )}
         </button>
       </div>
@@ -217,7 +225,12 @@ export default function ChatWindow({ selectedDocId, documents, onSourceClick, sh
           </div>
         ) : (
           messages.map((msg, i) => (
-            <MessageBubble key={msg.id} message={msg} index={i} onSourceClick={onSourceClick} />
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              index={i}
+              onSourceClick={onSourceClick}
+            />
           ))
         )}
 

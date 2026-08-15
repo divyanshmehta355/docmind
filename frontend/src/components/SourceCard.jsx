@@ -26,12 +26,12 @@ export default function SourceCard({ source, index, onSourceClick }) {
           <FileText size={14} />
           <span className="source-label">Source {index + 1}</span>
           <span className="source-page">Page {source.page_number}</span>
-          <button 
-            type="button" 
-            className="source-jump-btn" 
-            onClick={(e) => { 
-              e.stopPropagation(); 
-              if (onSourceClick) onSourceClick(source.page_number); 
+          <button
+            type="button"
+            className="source-jump-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onSourceClick) onSourceClick(source.page_number);
             }}
             title="View in PDF"
           >

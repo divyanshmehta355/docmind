@@ -4,6 +4,7 @@ from app.config import get_settings
 settings = get_settings()
 _embeddings_model: HuggingFaceEndpointEmbeddings | None = None
 
+
 def get_embeddings_model() -> HuggingFaceEndpointEmbeddings:
     global _embeddings_model
     if _embeddings_model is None:

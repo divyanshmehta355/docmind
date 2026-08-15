@@ -4,17 +4,26 @@ import os
 import signal
 import time
 
+
 def main():
     print("Starting DocMind Enterprise (FastAPI + Celery)...")
-    
+
     # Get the port from Render (defaults to 8000 locally)
     port = os.environ.get("PORT", "8000")
 
-    celery_cmd = [sys.executable, "-m", "celery", "-A", "app.celery_app.celery_app", "worker", "--loglevel=info"]
-    
+    celery_cmd = [
+        sys.executable,
+        "-m",
+        "celery",
+        "-A",
+        "app.celery_app.celery_app",
+        "worker",
+        "--loglevel=info",
+    ]
+
     # Windows compatibility fix: Celery's default prefork pool crashes on Windows.
     # We automatically switch to the 'solo' pool for local Windows development.
-    if os.name == 'nt':
+    if os.name == "nt":
         celery_cmd.append("--pool=solo")
 
     # Start Celery Worker
@@ -26,7 +35,16 @@ def main():
 
     # Start FastAPI
     uvicorn_process = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", port],
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "app.main:app",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            port,
+        ],
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
@@ -49,6 +67,7 @@ def main():
         uvicorn_process.wait()
     except KeyboardInterrupt:
         handle_shutdown(signal.SIGINT, None)
+
 
 if __name__ == "__main__":
     main()

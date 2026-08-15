@@ -28,17 +28,17 @@ export default function ChatPage() {
         selectedDocId={selectedDocId}
         onSelectDoc={handleSelectDoc}
       />
-      
+
       {selectedDocId && showPdf && (
-        <PdfViewer 
-          document={documents.find(d => d.id === selectedDocId)} 
-          currentPage={currentPage} 
+        <PdfViewer
+          document={documents.find((d) => d.id === selectedDocId)}
+          currentPage={currentPage}
         />
       )}
 
-      <ChatWindow 
-        selectedDocId={selectedDocId} 
-        documents={documents} 
+      <ChatWindow
+        selectedDocId={selectedDocId}
+        documents={documents}
         onSourceClick={handleSourceClick}
         showPdf={showPdf}
         setShowPdf={setShowPdf}

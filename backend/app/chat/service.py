@@ -13,6 +13,7 @@ from app.config import get_settings
 
 settings = get_settings()
 
+
 def get_confidence_level(score: float) -> str:
     if score >= 0.7:
         return "high"
@@ -20,26 +21,29 @@ def get_confidence_level(score: float) -> str:
         return "medium"
     return "low"
 
+
 def query_document_stream(db: Session, user_id: str, document: Document, question: str):
     # Setup Redis Cache Key
     redis_client = redis.from_url(settings.REDIS_URL)
-    question_hash = hashlib.sha256(question.strip().lower().encode('utf-8')).hexdigest()
+    question_hash = hashlib.sha256(question.strip().lower().encode("utf-8")).hexdigest()
     cache_key = f"docmind:chat:{user_id}:{document.id}:{question_hash}"
-    
+
     try:
         cached_response = redis_client.get(cache_key)
         if cached_response:
             cached_data = json.loads(cached_response)
             yield f"data: {json.dumps({'sources': cached_data['sources'], 'confidence': cached_data['confidence']})}\n\n"
             yield f"data: {json.dumps({'token': cached_data['answer']})}\n\n"
-            
-            user_msg = ChatMessage(user_id=user_id, document_id=document.id, role="user", content=question)
+
+            user_msg = ChatMessage(
+                user_id=user_id, document_id=document.id, role="user", content=question
+            )
             assistant_msg = ChatMessage(
                 user_id=user_id,
                 document_id=document.id,
                 role="assistant",
-                content=cached_data['answer'],
-                sources=cached_data['sources']
+                content=cached_data["answer"],
+                sources=cached_data["sources"],
             )
             db.add(user_msg)
             db.add(assistant_msg)
@@ -49,10 +53,14 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
     except Exception as e:
         print(f"Redis cache error: {e}")
 
-    recent_messages = db.query(ChatMessage).filter(
-        ChatMessage.document_id == document.id
-    ).order_by(desc(ChatMessage.created_at)).limit(6).all()
-    
+    recent_messages = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.document_id == document.id)
+        .order_by(desc(ChatMessage.created_at))
+        .limit(6)
+        .all()
+    )
+
     chat_history = []
     for msg in reversed(recent_messages):
         if msg.role == "user":
@@ -61,11 +69,16 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
             chat_history.append(AIMessage(content=msg.content))
 
     search_query = question
-    
+
     if chat_history:
         # Use a blazing fast LLM call to rewrite the query with context
         llm = get_llm()
-        history_text = "\n".join([f"{'User' if isinstance(m, HumanMessage) else 'Assistant'}: {m.content}" for m in chat_history[-4:]])
+        history_text = "\n".join(
+            [
+                f"{'User' if isinstance(m, HumanMessage) else 'Assistant'}: {m.content}"
+                for m in chat_history[-4:]
+            ]
+        )
         prompt = f"""Given the following chat history and a follow up question, rephrase the follow up question to be a standalone question. 
         If the question doesn't need context, return it exactly as is.
         Do not answer the question, just return the standalone question text.
@@ -76,34 +89,36 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
         Follow Up Question: {question}
         
         Standalone question:"""
-        
+
         response = llm.invoke(prompt)
         search_query = response.content.strip()
         print(f"Rephrased query: {search_query}")
 
     embeddings_model = get_embeddings_model()
     query_embedding = embeddings_model.embed_query(search_query)
-    
+
     chunks = search_chunks(
         user_id=user_id,
         document_id=document.id,
         query_embedding=query_embedding,
-        top_k=4
+        top_k=4,
     )
-    
+
     if not chunks:
         answer = "I don't know the answer based on the provided document. The question doesn't seem to match any content in the PDF."
-        
+
         yield f"data: {json.dumps({'sources': [], 'confidence': 'none'})}\n\n"
         yield f"data: {json.dumps({'token': answer})}\n\n"
-        
-        user_msg = ChatMessage(user_id=user_id, document_id=document.id, role="user", content=question)
+
+        user_msg = ChatMessage(
+            user_id=user_id, document_id=document.id, role="user", content=question
+        )
         assistant_msg = ChatMessage(
             user_id=user_id,
             document_id=document.id,
             role="assistant",
             content=answer,
-            sources=[]
+            sources=[],
         )
         db.add(user_msg)
         db.add(assistant_msg)
@@ -111,20 +126,22 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
         return
 
     final_chunks = chunks
-        
+
     if not final_chunks or final_chunks[0]["score"] < settings.CONFIDENCE_THRESHOLD:
         answer = "I don't know the answer based on the provided document. The question doesn't seem to match any content in the PDF."
-        
+
         yield f"data: {json.dumps({'sources': [], 'confidence': 'none'})}\n\n"
         yield f"data: {json.dumps({'token': answer})}\n\n"
-        
-        user_msg = ChatMessage(user_id=user_id, document_id=document.id, role="user", content=question)
+
+        user_msg = ChatMessage(
+            user_id=user_id, document_id=document.id, role="user", content=question
+        )
         assistant_msg = ChatMessage(
             user_id=user_id,
             document_id=document.id,
             role="assistant",
             content=answer,
-            sources=[]
+            sources=[],
         )
         db.add(user_msg)
         db.add(assistant_msg)
@@ -133,68 +150,78 @@ def query_document_stream(db: Session, user_id: str, document: Document, questio
 
     context_parts = []
     sources = []
-    
+
     for i, chunk in enumerate(final_chunks):
         source_index = i + 1
-        context_parts.append(f"[{source_index}] (Page {chunk['page_number']}):\n{chunk['text']}")
-        sources.append({
-            "chunk_index": chunk["chunk_index"],
-            "page_number": chunk["page_number"],
-            "text": chunk["text"],
-            "score": chunk["score"],
-        })
-        
+        context_parts.append(
+            f"[{source_index}] (Page {chunk['page_number']}):\n{chunk['text']}"
+        )
+        sources.append(
+            {
+                "chunk_index": chunk["chunk_index"],
+                "page_number": chunk["page_number"],
+                "text": chunk["text"],
+                "score": chunk["score"],
+            }
+        )
+
     context = "\n\n".join(context_parts)
-    
-    recent_messages = db.query(ChatMessage).filter(
-        ChatMessage.document_id == document.id
-    ).order_by(desc(ChatMessage.created_at)).limit(6).all()
-    
+
+    recent_messages = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.document_id == document.id)
+        .order_by(desc(ChatMessage.created_at))
+        .limit(6)
+        .all()
+    )
+
     chat_history = []
     for msg in reversed(recent_messages):
         if msg.role == "user":
             chat_history.append(HumanMessage(content=msg.content))
         else:
             chat_history.append(AIMessage(content=msg.content))
-            
+
     prompt = get_rag_prompt()
     llm = get_llm()
     chain = prompt | llm
-    
+
     confidence = get_confidence_level(final_chunks[0]["score"])
-    
+
     yield f"data: {json.dumps({'sources': sources, 'confidence': confidence})}\n\n"
-    
+
     full_answer = ""
     try:
-        for chunk in chain.stream({
-            "context": context, 
-            "chat_history": chat_history,
-            "question": question
-        }):
+        for chunk in chain.stream(
+            {"context": context, "chat_history": chat_history, "question": question}
+        ):
             token = chunk.content
             if token:
                 full_answer += token
                 yield f"data: {json.dumps({'token': token})}\n\n"
     finally:
-        user_msg = ChatMessage(user_id=user_id, document_id=document.id, role="user", content=question)
+        user_msg = ChatMessage(
+            user_id=user_id, document_id=document.id, role="user", content=question
+        )
         assistant_msg = ChatMessage(
             user_id=user_id,
             document_id=document.id,
             role="assistant",
             content=full_answer,
-            sources=[s.model_dump() if hasattr(s, 'model_dump') else s for s in sources]
+            sources=[
+                s.model_dump() if hasattr(s, "model_dump") else s for s in sources
+            ],
         )
         db.add(user_msg)
         db.add(assistant_msg)
         db.commit()
-        
+
         # Save to Redis Cache (24 hours TTL)
         try:
             cache_data = {
                 "answer": full_answer,
                 "sources": assistant_msg.sources,
-                "confidence": confidence
+                "confidence": confidence,
             }
             redis_client.setex(cache_key, 86400, json.dumps(cache_data))
         except Exception as e:
