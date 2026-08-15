@@ -38,32 +38,34 @@ async def upload_document(
     db.refresh(document)
     
     # Upload to ImageKit
-    if settings.IMAGEKIT_PUBLIC_KEY and settings.IMAGEKIT_PRIVATE_KEY:
-        try:
-            imagekit = ImageKit(
-                public_key=settings.IMAGEKIT_PUBLIC_KEY,
-                private_key=settings.IMAGEKIT_PRIVATE_KEY,
-                url_endpoint=settings.IMAGEKIT_URL_ENDPOINT
-            )
-            
-            # ImageKit Python SDK requires base64 string or file path. 
-            # Passing base64 encoding of the raw bytes
-            encoded_file = base64.b64encode(content).decode('utf-8')
-            
-            upload = imagekit.upload_file(
-                file=encoded_file,
-                file_name=f"{document.id}.pdf"
-            )
-            
-            document.pdf_url = upload.url
-            document.imagekit_file_id = upload.file_id
-            db.commit()
-            db.refresh(document)
-        except Exception as e:
-            print(f"ImageKit upload failed: {e}")
-            db.delete(document)
-            db.commit()
-            raise HTTPException(status_code=500, detail=f"Failed to upload PDF to cloud storage: {str(e)}")
+    if not settings.IMAGEKIT_PUBLIC_KEY or not settings.IMAGEKIT_PRIVATE_KEY:
+        db.delete(document)
+        db.commit()
+        raise HTTPException(status_code=500, detail="Server misconfiguration: ImageKit API keys are missing in the environment.")
+        
+    try:
+        imagekit = ImageKit(
+            public_key=settings.IMAGEKIT_PUBLIC_KEY,
+            private_key=settings.IMAGEKIT_PRIVATE_KEY,
+            url_endpoint=settings.IMAGEKIT_URL_ENDPOINT
+        )
+        
+        encoded_file = base64.b64encode(content).decode('utf-8')
+        
+        upload = imagekit.upload_file(
+            file=encoded_file,
+            file_name=f"{document.id}.pdf"
+        )
+        
+        document.pdf_url = upload.url
+        document.imagekit_file_id = upload.file_id
+        db.commit()
+        db.refresh(document)
+    except Exception as e:
+        print(f"ImageKit upload failed: {e}")
+        db.delete(document)
+        db.commit()
+        raise HTTPException(status_code=500, detail=f"Failed to upload PDF to cloud storage: {str(e)}")
     
     # Send task to Celery Queue instead of blocking web server resources
     from app.celery_app import process_document_task
