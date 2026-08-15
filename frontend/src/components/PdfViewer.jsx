@@ -2,70 +2,23 @@ import { useState, useEffect } from "react";
 import { documentsAPI } from "../api/client";
 import { Loader, AlertCircle } from "lucide-react";
 
-export default function PdfViewer({ documentId, currentPage }) {
-  const [pdfUrl, setPdfUrl] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+export default function PdfViewer({ document, currentPage }) {
+  if (!document) return null;
 
-  useEffect(() => {
-    if (!documentId) {
-      setPdfUrl(null);
-      return;
-    }
-
-    let currentUrl = null;
-
-    const fetchPdf = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await documentsAPI.getPdfBlob(documentId);
-        currentUrl = URL.createObjectURL(response.data);
-        setPdfUrl(currentUrl);
-      } catch (err) {
-        console.error("Failed to load PDF:", err);
-        setError("Failed to load PDF. It may have been processed before PDF storage was implemented.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPdf();
-
-    return () => {
-      if (currentUrl) {
-        URL.revokeObjectURL(currentUrl);
-      }
-    };
-  }, [documentId]);
-
-  if (!documentId) return null;
-
-  if (loading) {
-    return (
-      <div className="pdf-viewer-state">
-        <Loader size={24} className="spinning" />
-        <p>Loading document...</p>
-      </div>
-    );
-  }
-
-  if (error) {
+  if (!document.pdf_url) {
     return (
       <div className="pdf-viewer-state error-state">
         <AlertCircle size={24} />
-        <p>{error}</p>
+        <p>This document does not have a valid Cloud PDF URL. Please re-upload it.</p>
       </div>
     );
   }
-
-  if (!pdfUrl) return null;
 
   return (
     <div className="pdf-viewer-container">
       <iframe
-        key={`${pdfUrl}-${currentPage}`}
-        src={`${pdfUrl}#page=${currentPage || 1}&view=FitH`}
+        key={`${document.pdf_url}-${currentPage}`}
+        src={`${document.pdf_url}#page=${currentPage || 1}&view=FitH`}
         title="PDF Viewer"
         className="pdf-iframe"
       />

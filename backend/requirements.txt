@@ -27,6 +27,9 @@ flashrank>=0.2.0,<1.0.0
 # ─── PDF Parsing ───
 PyMuPDF>=1.25.0,<2.0.0
 
+# ─── Cloud Storage ───
+imagekitio>=2.3.0,<3.0.0
+
 # ─── Auth ───
 python-jose[cryptography]>=3.3.0,<4.0.0
 passlib[bcrypt]>=1.7.0,<2.0.0

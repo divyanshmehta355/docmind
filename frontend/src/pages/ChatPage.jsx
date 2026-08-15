@@ -30,7 +30,10 @@ export default function ChatPage() {
       />
       
       {selectedDocId && showPdf && (
-        <PdfViewer documentId={selectedDocId} currentPage={currentPage} />
+        <PdfViewer 
+          document={documents.find(d => d.id === selectedDocId)} 
+          currentPage={currentPage} 
+        />
       )}
 
       <ChatWindow 

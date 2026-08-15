@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    IMAGEKIT_PUBLIC_KEY: str = ""
+    IMAGEKIT_PRIVATE_KEY: str = ""
+    IMAGEKIT_URL_ENDPOINT: str = ""
+
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/docmind"
 
     RETRIEVAL_TOP_K: int = 5

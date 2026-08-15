@@ -1,17 +1,18 @@
 import os
+import base64
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from imagekitio import ImageKit
 from app.database import get_db
 from app.auth.dependencies import get_current_user
 from app.models import User, Document
 from app.schemas import DocumentResponse, DocumentListResponse
 from app.documents.service import process_document, get_documents_by_user, get_document_by_id, remove_document
+from app.config import get_settings
 
 router = APIRouter(prefix="/documents", tags=["documents"])
-
-UPLOADS_DIR = "uploads"
-os.makedirs(UPLOADS_DIR, exist_ok=True)
+settings = get_settings()
 
 @router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def upload_document(
@@ -36,9 +37,31 @@ async def upload_document(
     db.commit()
     db.refresh(document)
     
-    # Save PDF locally for the viewer
-    with open(f"{UPLOADS_DIR}/{document.id}.pdf", "wb") as f:
-        f.write(content)
+    # Upload to ImageKit
+    if settings.IMAGEKIT_PUBLIC_KEY and settings.IMAGEKIT_PRIVATE_KEY:
+        try:
+            imagekit = ImageKit(
+                public_key=settings.IMAGEKIT_PUBLIC_KEY,
+                private_key=settings.IMAGEKIT_PRIVATE_KEY,
+                url_endpoint=settings.IMAGEKIT_URL_ENDPOINT
+            )
+            
+            # ImageKit Python SDK requires base64 string or file path. 
+            # Passing base64 encoding of the raw bytes
+            encoded_file = base64.b64encode(content).decode('utf-8')
+            
+            upload = imagekit.upload_file(
+                file=encoded_file,
+                file_name=f"{document.id}.pdf"
+            )
+            
+            document.pdf_url = upload.url
+            db.commit()
+            db.refresh(document)
+        except Exception as e:
+            # If upload fails, just leave pdf_url as None
+            print(f"ImageKit upload failed: {e}")
+            pass
     
     background_tasks.add_task(
         process_document,
@@ -65,21 +88,4 @@ def delete_document(document_id: str, db: Session = Depends(get_db), current_use
         raise HTTPException(status_code=400, detail="Cannot delete a document while it is processing")
         
     remove_document(db=db, document=document, user_id=current_user.id)
-    
-    pdf_path = f"{UPLOADS_DIR}/{document_id}.pdf"
-    if os.path.exists(pdf_path):
-        os.remove(pdf_path)
-        
     return None
-
-@router.get("/{document_id}/pdf")
-def get_pdf(document_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    document = get_document_by_id(db, document_id, current_user.id)
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-        
-    pdf_path = f"{UPLOADS_DIR}/{document.id}.pdf"
-    if not os.path.exists(pdf_path):
-        raise HTTPException(status_code=404, detail="PDF file not found on server")
-        
-    return FileResponse(pdf_path, media_type="application/pdf", filename=document.filename)

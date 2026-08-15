@@ -41,6 +41,7 @@ class Document(Base):
     chunk_count = Column(Integer, default=0)
     status = Column(String, default="processing")
     error_message = Column(Text, nullable=True)
+    pdf_url = Column(String, nullable=True)
     created_at = Column(DateTime, default=_utcnow)
 
     owner = relationship("User", back_populates="documents")

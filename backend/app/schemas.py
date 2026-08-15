@@ -33,6 +33,7 @@ class DocumentResponse(BaseModel):
     chunk_count: int
     status: str
     error_message: Optional[str] = None
+    pdf_url: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

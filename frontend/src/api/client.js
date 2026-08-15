@@ -51,7 +51,6 @@ export const documentsAPI = {
   },
   list: () => client.get("/documents/"),
   delete: (documentId) => client.delete(`/documents/${documentId}`),
-  getPdfBlob: (documentId) => client.get(`/documents/${documentId}/pdf`, { responseType: 'blob' }),
 };
 
 export const chatAPI = {
