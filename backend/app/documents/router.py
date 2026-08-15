@@ -60,9 +60,10 @@ async def upload_document(
             db.commit()
             db.refresh(document)
         except Exception as e:
-            # If upload fails, just leave pdf_url as None
             print(f"ImageKit upload failed: {e}")
-            pass
+            db.delete(document)
+            db.commit()
+            raise HTTPException(status_code=500, detail=f"Failed to upload PDF to cloud storage: {str(e)}")
     
     # Send task to Celery Queue instead of blocking web server resources
     from app.celery_app import process_document_task
