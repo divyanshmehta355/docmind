@@ -31,7 +31,7 @@ export default function FileUpload({ onUpload, isUploading }) {
       onDrop,
       accept: { "application/pdf": [".pdf"] },
       maxFiles: 1,
-      maxSize: 20 * 1024 * 1024,
+      maxSize: 25 * 1024 * 1024,
       disabled: isUploading,
     });
 
@@ -66,7 +66,7 @@ export default function FileUpload({ onUpload, isUploading }) {
           <div className="upload-content">
             <Upload size={24} className="upload-icon" />
             <span className="upload-label">Upload PDF</span>
-            <span className="upload-hint">Drag & drop or click • Max 20MB</span>
+            <span className="upload-hint">Drag & drop or click • Max 25MB</span>
           </div>
         )}
       </div>
@@ -74,7 +74,7 @@ export default function FileUpload({ onUpload, isUploading }) {
       {fileRejections.length > 0 && (
         <div className="upload-error animate-fade-in">
           <AlertCircle size={14} />
-          Only PDF files under 20MB are accepted
+          Only PDF files under 25MB are accepted
         </div>
       )}
 
